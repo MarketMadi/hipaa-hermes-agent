@@ -1,0 +1,50 @@
+services:
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    network_mode: host
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+  loki:
+    image: grafana/loki:3.3.2
+    network_mode: host
+    command: -config.file=/etc/loki/config.yml
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/config.yml:ro
+      - loki-data:/loki
+
+  promtail:
+    image: grafana/promtail:3.3.2
+    network_mode: host
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./promtail/promtail.yml:/etc/promtail/config.yml:ro
+      - ../logs:/var/log/hipaa-hermes:ro
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    network_mode: host
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: yesoreyeram-infinity-datasource
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_HTTP_PORT: 3000
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/hipaa-hermes-observability.json:/var/lib/grafana/dashboards/hipaa-hermes-observability.json:ro
+    depends_on:
+      - prometheus
+      - loki
+
+  ollama:
+    image: ollama/ollama:latest
+    network_mode: host
+    volumes:
+      - ollama-data:/root/.ollama
+
+volumes:
+  loki-data:
+  ollama-data:

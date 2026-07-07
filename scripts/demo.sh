@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
-# Quick smoke test for v1 API + RBAC
+# Quick smoke test for API + RBAC
 set -euo pipefail
 cd "$(dirname "$0")/.."
-export PYTHONPATH=src
-source .venv/bin/activate 2>/dev/null || true
 
 BASE="${BASE:-http://localhost:8090}"
 OP="${ADMIN_SECRET:-change-me-operator}"
@@ -25,7 +23,10 @@ echo "== operator denied export (expect 403) =="
 code=$(curl -s -o /dev/null -w "%{http_code}" "$BASE/v1/audit/export" -H "X-Role-Key: $OP")
 echo "HTTP $code"
 
-echo "== metrics =="
-curl -sf "$BASE/metrics" | jq .
+echo "== prometheus metrics =="
+curl -sf "$BASE/metrics" | grep -E "hipaa_hermes|http_requests" | head -10
+
+echo "== json stats =="
+curl -sf "$BASE/api/stats" | jq .
 
 echo "OK"

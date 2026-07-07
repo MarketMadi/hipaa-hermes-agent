@@ -131,7 +131,7 @@ sequenceDiagram
 | Audit controls | Append-only hashed log; no delete API |
 | Integrity | Per-entry SHA-256; immutable SQLite WAL |
 | Transmission | TLS termination at gateway; no public debug tunnels |
-| Minimum necessary | Policy layer stub; de-ID before LLM in v2 |
+| Minimum necessary | PHI policy gate (`policy.rs`) before LLM call |
 | Encryption at rest | v2: encrypted volume / Postgres TDE |
 
 ---
@@ -140,10 +140,11 @@ sequenceDiagram
 
 | Architecture box | v1 code |
 |------------------|---------|
-| Audit log | `src/hipaa_hermes/audit.py` |
-| RBAC | `src/hipaa_hermes/auth.py` |
-| Gateway (minimal) | `src/hipaa_hermes/main.py` |
-| Grafana | `deploy/grafana/hipaa-hermes-v1.json` |
+| Audit log | `crates/hermes/src/audit.rs` |
+| RBAC | `crates/hermes/src/auth.rs` |
+| Gateway (minimal) | `crates/hermes` — Axum API |
+| PHI policy layer | `crates/hermes/src/policy.rs` |
+| Grafana | `deploy/grafana/hipaa-hermes-observability.json` |
 
 ---
 
@@ -152,7 +153,7 @@ sequenceDiagram
 - Signed BAAs with Slack, cloud host, LLM vendor
 - Secrets manager (not `.env` on disk)
 - Encrypted Postgres for sessions
-- SIEM integration (not Loki in v1 — see [SCOPE.md](./SCOPE.md))
+- SIEM integration (optional; Loki included in local `deploy/docker-compose.yml`)
 - Formal risk assessment and workforce training
 
 ---

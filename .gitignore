@@ -5,5 +5,7 @@ __pycache__/
 *.db
 *.db-wal
 *.db-shm
+target/
+logs/
 dist/
 .pytest_cache/

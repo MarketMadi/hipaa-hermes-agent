@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HIPAA Hermes — Clinician Demo (synthetic)</title>
+  <style>
+    :root { font-family: system-ui, sans-serif; color: #1a1a1a; background: #f4f6f8; }
+    body { max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.35rem; margin-bottom: 0.25rem; }
+    .badge { display: inline-block; background: #e8f4ea; color: #1b5e20; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+    .warn { background: #fff3e0; color: #e65100; padding: 0.75rem; border-radius: 6px; font-size: 0.85rem; margin: 1rem 0; }
+    label { display: block; font-weight: 600; margin-top: 1rem; font-size: 0.9rem; }
+    select, textarea, button { width: 100%; margin-top: 0.35rem; font-size: 0.95rem; }
+    textarea { min-height: 120px; font-family: ui-monospace, monospace; font-size: 0.85rem; }
+    button { background: #1565c0; color: white; border: none; padding: 0.75rem; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 1rem; }
+    button:disabled { opacity: 0.5; cursor: wait; }
+    .loading { color: #555; font-style: italic; }
+    #output, #deid-preview { background: white; border: 1px solid #ccc; border-radius: 6px; padding: 1rem; margin-top: 1rem; white-space: pre-wrap; font-size: 0.9rem; min-height: 4rem; }
+    #deid-preview { background: #f0f7ff; border-color: #90caf9; font-family: ui-monospace, monospace; font-size: 0.8rem; display: none; }
+    #deid-preview.visible { display: block; }
+    .meta { font-size: 0.8rem; color: #555; margin-top: 0.5rem; }
+    a { color: #1565c0; }
+  </style>
+</head>
+<body>
+  <h1>Clinician AI Assistant <span class="badge">ON-PREM AI</span></h1>
+  <p>Synthetic hospital workflow — chart → <strong>de-ID</strong> → policy gate → <strong>local model</strong> (data stays on this host) → audit trail.</p>
+
+  <div class="warn">
+    <strong>Not production.</strong> Local demo only. No real PHI. Operator key is the default dev secret.
+    This emulates what sits <em>behind</em> an EHR button: gateway + policy + audit, not the EHR itself.
+  </div>
+
+  <label for="scenario">Clinical scenario</label>
+  <select id="scenario"></select>
+
+  <label for="context">Chart context (de-identified)</label>
+  <textarea id="context" readonly></textarea>
+
+  <label for="question">Clinician question</label>
+  <textarea id="question"></textarea>
+
+  <button id="ask">Ask AI (via Hermes gateway)</button>
+
+  <label id="deid-label" style="display:none;margin-top:1rem;">Sent to model (de-identified)</label>
+  <div id="deid-preview"></div>
+
+  <div id="output">Response will appear here…</div>
+  <div class="meta" id="meta"></div>
+
+  <p class="meta">
+    <a href="http://localhost:3000/d/hipaa-hermes-obs/hipaa-hermes-observability" target="_blank">Open Grafana</a>
+    · audit + logs · admin / admin
+  </p>
+
+  <script>
+    const API = window.location.origin;
+    const OP_KEY = "change-me-operator";
+
+    let scenarios = [];
+
+    async function loadScenarios() {
+      const r = await fetch(API + "/v1/demo/scenarios");
+      const data = await r.json();
+      scenarios = data.scenarios || [];
+      const sel = document.getElementById("scenario");
+      sel.innerHTML = scenarios.map((s, i) =>
+        `<option value="${i}">${s.label}</option>`
+      ).join("");
+      sel.onchange = () => applyScenario(sel.value);
+      applyScenario(0);
+    }
+
+    function applyScenario(idx) {
+      const s = scenarios[idx];
+      document.getElementById("context").value = s.context;
+      document.getElementById("question").value = s.question;
+    }
+
+    document.getElementById("ask").onclick = async () => {
+      const btn = document.getElementById("ask");
+      const out = document.getElementById("output");
+      const meta = document.getElementById("meta");
+      const deidBox = document.getElementById("deid-preview");
+      const deidLabel = document.getElementById("deid-label");
+      deidBox.classList.remove("visible");
+      deidLabel.style.display = "none";
+      const sel = document.getElementById("scenario");
+      const s = scenarios[sel.value];
+      const prompt = `CONTEXT:\n${document.getElementById("context").value}\n\nQUESTION:\n${document.getElementById("question").value}`;
+
+      btn.disabled = true;
+      out.innerHTML = '<span class="loading">Calling gateway… local Ollama can take 10–60 seconds on first request.</span>';
+      meta.textContent = "";
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120000);
+
+      try {
+        const r = await fetch(API + "/v1/inference", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Role-Key": OP_KEY,
+          },
+          body: JSON.stringify({ prompt, skill: s.skill || "vault-answer" }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        const data = await r.json();
+        if (!r.ok) {
+          const detail = typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail);
+          out.textContent = "Gateway response:\n" + detail;
+          if (detail.includes("credit balance")) {
+            meta.textContent = "HTTP " + r.status + " — run ./scripts/setup-ollama.sh then ./scripts/run.sh";
+          } else {
+            meta.textContent = "HTTP " + r.status + (s.expect_blocked ? " — expected for policy demo" : "");
+          }
+        } else {
+          out.textContent = data.output;
+          const cats = (data.deid_categories || []).join(", ") || "none";
+          meta.textContent = `audit_id=${data.audit_id} · hash=${data.entry_hash?.slice(0,16)}… · ${data.latency_ms?.toFixed(0)}ms · ${data.deid_redaction_count ?? 0} redactions (${cats})`;
+          if (data.deidentified_prompt) {
+            deidBox.textContent = data.deidentified_prompt;
+            deidBox.classList.add("visible");
+            deidLabel.style.display = "block";
+          }
+        }
+      } catch (e) {
+        clearTimeout(timeout);
+        if (e.name === "AbortError") {
+          out.textContent = "Request timed out after 2 minutes.\n\nOllama may still be loading the model. Wait and try again, or restart:\n  ./scripts/stop.sh && ./scripts/run.sh";
+        } else {
+          out.textContent = "Request failed: " + e.message + "\n\nIf the API wedged, restart:\n  ./scripts/stop.sh && ./scripts/run.sh";
+        }
+      }
+      btn.disabled = false;
+    };
+
+    loadScenarios().catch(e => {
+      document.getElementById("output").textContent = "Could not load scenarios. Is ./scripts/run.sh running?";
+    });
+  </script>
+</body>
+</html>

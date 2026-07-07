@@ -46,7 +46,7 @@
           "method": "GET",
           "queryParams": "",
           "refId": "A",
-          "urlPath": "/metrics"
+          "urlPath": "/api/stats"
         }
       ],
       "title": "Audit entries (total)",
@@ -83,7 +83,7 @@
           "fields": [{ "jsonPath": "$.audit_failures", "name": "audit_failures" }],
           "method": "GET",
           "refId": "A",
-          "urlPath": "/metrics"
+          "urlPath": "/api/stats"
         }
       ],
       "title": "Audit failures",
@@ -104,7 +104,7 @@
           "fields": [{ "jsonPath": "$.audit_by_action", "name": "by_action" }],
           "method": "GET",
           "refId": "A",
-          "urlPath": "/metrics"
+          "urlPath": "/api/stats"
         }
       ],
       "title": "Audit events by action",
@@ -121,5 +121,5 @@
   "title": "HIPAA Hermes v1",
   "uid": "hipaa-hermes-v1",
   "version": 1,
-  "description": "v1 dashboard — point JSON datasource at http://localhost:8090. Loki not included per §4a.4."
+  "description": "v1 dashboard — point JSON datasource at http://localhost:8090/api/stats. Loki not included per §4a.4."
 }

@@ -1,0 +1,175 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }
+      },
+      "targets": [{ "expr": "hipaa_hermes_audit_entries_total", "refId": "A" }],
+      "title": "Audit entries (total)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "id": 2,
+      "targets": [{ "expr": "hipaa_hermes_audit_failures_total", "refId": "A" }],
+      "title": "Audit failures",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "sum by (status) (hipaa_hermes_auth_failures_total)",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Auth failures (401 / 403)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(hipaa_hermes_inference_latency_seconds_bucket[5m])) by (le))",
+          "refId": "A"
+        }
+      ],
+      "title": "Inference latency p95 (s)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "sum by (handler, status) (rate(http_requests_total[1m]))",
+          "legendFormat": "{{handler}} {{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP request rate by route",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "sum by (action) (rate(hipaa_hermes_audit_appends_total[5m]))",
+          "legendFormat": "{{action}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Audit append rate",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 12 },
+      "id": 8,
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": false
+      },
+      "targets": [
+        {
+          "expr": "{job=\"hipaa-hermes\"}",
+          "refId": "A"
+        }
+      ],
+      "title": "Application logs (uvicorn + API — no PHI)",
+      "type": "logs"
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "hipaa-hermes-api" },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 20 },
+      "id": 7,
+      "options": {
+        "cellHeight": "sm",
+        "footer": { "show": false },
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "columns": [
+            { "selector": "id", "text": "id", "type": "number" },
+            { "selector": "ts", "text": "ts", "type": "string" },
+            { "selector": "actor", "text": "actor", "type": "string" },
+            { "selector": "role", "text": "role", "type": "string" },
+            { "selector": "action", "text": "action", "type": "string" },
+            { "selector": "resource", "text": "resource", "type": "string" },
+            { "selector": "outcome", "text": "outcome", "type": "string" },
+            { "selector": "hash_valid", "text": "hash_valid", "type": "boolean" }
+          ],
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "root_selector": "entries",
+          "source": "url",
+          "type": "json",
+          "url": "/v1/audit?limit=50",
+          "url_options": { "method": "GET" }
+        }
+      ],
+      "title": "Audit log (compliance trail — not app stdout)",
+      "type": "table"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "tags": ["hipaa-hermes", "observability"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "HIPAA Hermes Observability",
+  "uid": "hipaa-hermes-obs",
+  "version": 1,
+  "description": "Prometheus metrics, Loki app logs, and audit trail table."
+}

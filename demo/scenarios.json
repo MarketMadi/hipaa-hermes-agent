@@ -1,0 +1,27 @@
+{
+  "title": "Synthetic clinical scenarios (demo only — no real PHI)",
+  "scenarios": [
+    {
+      "id": "discharge-summary",
+      "label": "Discharge summary — plain-language handoff",
+      "skill": "vault-answer",
+      "context": "DE-IDENTIFIED DISCHARGE NOTE\nAge: 67 | Sex: F | MRN: REDACTED\nAdmission: uncomplicated pneumonia, treated with IV antibiotics.\nHospital course: improved oxygenation, ambulating independently.\nDischarge meds: amoxicillin 7d, albuterol PRN.\nFollow-up: PCP in 1 week.",
+      "question": "Write a 3-sentence plain-language summary for the patient and family."
+    },
+    {
+      "id": "lab-followup",
+      "label": "Lab follow-up — critical value triage",
+      "skill": "vault-answer",
+      "context": "DE-IDENTIFIED LAB PANEL\nPatient: Study ID #4471 (synthetic)\nCreatinine: 2.1 mg/dL (baseline 1.0)\nPotassium: 5.8 mEq/L\nBUN: 38 mg/dL\nMedications: lisinopril, spironolactone\nNo acute symptoms documented in nursing note.",
+      "question": "What should the covering clinician verify before callback? Bullet list only."
+    },
+    {
+      "id": "policy-block-demo",
+      "label": "⚠️ Policy demo — contains SSN (will be blocked)",
+      "skill": "vault-answer",
+      "context": "INTENTIONALLY BAD DEMO ROW — DO NOT USE IN PRODUCTION",
+      "question": "Patient Jane Example SSN 123-45-6789 called about refill.",
+      "expect_blocked": true
+    }
+  ]
+}

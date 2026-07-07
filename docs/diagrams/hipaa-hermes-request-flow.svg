@@ -59,7 +59,7 @@
   <text x="290" y="222" class="step">4. classify / minimize</text>
 
   <rect x="300" y="250" width="500" height="56" fill="#fef2f2" stroke="#fca5a5" rx="6"/>
-  <text x="312" y="272" class="step">alt: blocked ’ safe refusal (no LLM call)</text>
+  <text x="312" y="272" class="step">alt: blocked ï¿½ safe refusal (no LLM call)</text>
   <text x="312" y="290" class="note">PHI pattern or skill ACL deny</text>
 
   <line x1="420" y1="330" x2="585" y2="330" class="msg"/>

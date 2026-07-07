@@ -4,7 +4,7 @@ Two non-code items. **One consistent answer everywhere** (Upwork, calls, Slack, 
 
 ---
 
-## Q11 — Bayana: where does the name appear?
+## Q11 — Client names: where do they appear?
 
 Pick **exactly one** row. Dave + Vino must agree; then delete the other options from this file.
 
@@ -24,10 +24,10 @@ Pick **exactly one** row. Dave + Vino must agree; then delete the other options 
 ### After decision — copy-paste snippets
 
 **If A (profile):**
-> Bayana — [one line outcome, no confidential metrics unless cleared].
+> [Client name] — [one line outcome, no confidential metrics unless cleared].
 
 **If B (calls only):**
-> Profile: *"Healthcare platform replatform (HIPAA)."* Calls: *"Most recent regulated client was Bayana — happy to discuss scope under NDA."*
+> Profile: *"Healthcare platform replatform (HIPAA)."* Calls: *"Most recent regulated client — happy to discuss scope under NDA."*
 
 **If C (absent):**
 > *"Regulated healthcare and fintech infrastructure — client names available under NDA."*
