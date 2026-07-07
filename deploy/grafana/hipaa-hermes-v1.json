@@ -1,0 +1,125 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "marcusolsson-json-datasource", "uid": "hipaa-hermes-api" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "mappings": [],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "pluginVersion": "10.0.0",
+      "targets": [
+        {
+          "cacheDurationSeconds": 5,
+          "fields": [{ "jsonPath": "$.audit_total", "name": "audit_total" }],
+          "method": "GET",
+          "queryParams": "",
+          "refId": "A",
+          "urlPath": "/metrics"
+        }
+      ],
+      "title": "Audit entries (total)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "marcusolsson-json-datasource", "uid": "hipaa-hermes-api" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "fields": [{ "jsonPath": "$.audit_failures", "name": "audit_failures" }],
+          "method": "GET",
+          "refId": "A",
+          "urlPath": "/metrics"
+        }
+      ],
+      "title": "Audit failures",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "marcusolsson-json-datasource", "uid": "hipaa-hermes-api" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "id": 3,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom", "showLegend": true },
+        "pieType": "pie",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": true },
+        "tooltip": { "mode": "single", "sort": "none" }
+      },
+      "targets": [
+        {
+          "fields": [{ "jsonPath": "$.audit_by_action", "name": "by_action" }],
+          "method": "GET",
+          "refId": "A",
+          "urlPath": "/metrics"
+        }
+      ],
+      "title": "Audit events by action",
+      "type": "piechart"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 38,
+  "tags": ["hipaa-hermes", "v1"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "HIPAA Hermes v1",
+  "uid": "hipaa-hermes-v1",
+  "version": 1,
+  "description": "v1 dashboard — point JSON datasource at http://localhost:8090. Loki not included per §4a.4."
+}

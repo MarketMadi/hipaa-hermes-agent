@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" font-family="system-ui, -apple-system, Segoe UI, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#475569"/>
+    </marker>
+    <style>
+      .title { font-size: 22px; font-weight: 700; fill: #0f172a; }
+      .subtitle { font-size: 13px; fill: #64748b; }
+      .zone-label { font-size: 12px; font-weight: 700; fill: #334155; letter-spacing: 0.04em; }
+      .zone-desc { font-size: 11px; fill: #475569; }
+      .box { rx: 8; ry: 8; stroke-width: 1.5; }
+      .box-title { font-size: 13px; font-weight: 700; fill: #0f172a; }
+      .box-sub { font-size: 10px; fill: #475569; }
+      .legend { font-size: 11px; fill: #334155; }
+    </style>
+  </defs>
+
+  <text x="40" y="42" class="title">HIPAA-aligned Hermes  reference architecture</text>
+  <text x="40" y="64" class="subtitle">Reference only · not a depiction of any single client system · v1 skeleton</text>
+
+  <!-- Zone A -->
+  <rect x="40" y="88" width="1120" height="88" fill="#fef2f2" stroke="#fca5a5" class="box"/>
+  <text x="56" y="110" class="zone-label">ZONE A  EXTERNAL (BAA REQUIRED)</text>
+  <text x="56" y="128" class="zone-desc">Slack Enterprise · LLM API (zero data retention) · optional FHIR read API</text>
+  <rect x="880" y="108" width="120" height="52" fill="#fff" stroke="#f87171" class="box"/>
+  <text x="894" y="130" class="box-title">LLM API</text>
+  <text x="894" y="146" class="box-sub">BAA + ZDR</text>
+  <rect x="1020" y="108" width="120" height="52" fill="#fff" stroke="#f87171" class="box"/>
+  <text x="1034" y="130" class="box-title">Slack</text>
+  <text x="1034" y="146" class="box-sub">Enterprise Grid</text>
+
+  <!-- Zone B -->
+  <rect x="40" y="196" width="1120" height="100" fill="#fff7ed" stroke="#fdba74" class="box"/>
+  <text x="56" y="218" class="zone-label">ZONE B  GATEWAY DMZ (SINGLE INGRESS)</text>
+  <text x="56" y="236" class="zone-desc">TLS 1.2+ termination · allowlist · MFA · rate limits</text>
+  <rect x="320" y="220" width="200" height="60" fill="#fff" stroke="#fb923c" class="box"/>
+  <text x="334" y="244" class="box-title">Hermes Gateway</text>
+  <text x="334" y="260" class="box-sub">auth · ingress · audit append</text>
+  <rect x="560" y="220" width="200" height="60" fill="#fff" stroke="#fb923c" class="box"/>
+  <text x="574" y="244" class="box-title">PHI Policy Layer</text>
+  <text x="574" y="260" class="box-sub">de-ID · block patterns · skill ACL</text>
+
+  <!-- Zone C -->
+  <rect x="40" y="316" width="1120" height="280" fill="#eff6ff" stroke="#93c5fd" class="box"/>
+  <text x="56" y="338" class="zone-label">ZONE C  AGENT + ePHI (PRIVATE NETWORK)</text>
+  <text x="56" y="356" class="zone-desc">No public ports · no quick tunnels · secrets from vault</text>
+
+  <rect x="120" y="380" width="200" height="72" fill="#fff" stroke="#60a5fa" class="box"/>
+  <text x="134" y="404" class="box-title">Agent Runtime</text>
+  <text x="134" y="420" class="box-sub">tools · orchestration</text>
+  <text x="134" y="436" class="box-sub">skills as data</text>
+
+  <rect x="380" y="380" width="200" height="72" fill="#fff" stroke="#60a5fa" class="box"/>
+  <text x="394" y="404" class="box-title">Credential Proxy</text>
+  <text x="394" y="420" class="box-sub">API keys never in</text>
+  <text x="394" y="436" class="box-sub">browser or tools</text>
+
+  <rect x="640" y="380" width="220" height="72" fill="#dbeafe" stroke="#2563eb" stroke-width="2" class="box"/>
+  <text x="654" y="404" class="box-title">Append-only Audit Log</text>
+  <text x="654" y="420" class="box-sub">SHA-256 per entry · RBAC read</text>
+  <text x="654" y="436" class="box-sub">v1: audit.py · no delete API</text>
+
+  <rect x="900" y="380" width="200" height="72" fill="#fff" stroke="#60a5fa" class="box"/>
+  <text x="914" y="404" class="box-title">Session Store</text>
+  <text x="914" y="420" class="box-sub">encrypted at rest</text>
+  <text x="914" y="436" class="box-sub">v2: Postgres TDE</text>
+
+  <rect x="380" y="500" width="200" height="60" fill="#fff" stroke="#60a5fa" class="box"/>
+  <text x="394" y="524" class="box-title">RAG Index</text>
+  <text x="394" y="540" class="box-sub">pgvector · scoped retrieval</text>
+
+  <!-- Workforce -->
+  <rect x="120" y="620" width="160" height="56" fill="#f8fafc" stroke="#94a3b8" class="box"/>
+  <text x="134" y="644" class="box-title">Clinician / Ops</text>
+  <text x="134" y="660" class="box-sub">operator role</text>
+
+  <rect x="900" y="620" width="180" height="56" fill="#f8fafc" stroke="#94a3b8" class="box"/>
+  <text x="914" y="644" class="box-title">Compliance Auditor</text>
+  <text x="914" y="660" class="box-sub">auditor role · read-only</text>
+
+  <!-- Zone D -->
+  <rect x="40" y="700" width="1120" height="88" fill="#f0fdf4" stroke="#86efac" class="box"/>
+  <text x="56" y="722" class="zone-label">ZONE D  OPS (NO PHI IN LOGS)</text>
+  <text x="56" y="740" class="zone-desc">VPN-only access · redacted metrics · encrypted backups</text>
+  <rect x="480" y="716" width="160" height="52" fill="#fff" stroke="#4ade80" class="box"/>
+  <text x="494" y="738" class="box-title">Grafana</text>
+  <text x="494" y="754" class="box-sub">v1 dashboard JSON</text>
+  <rect x="660" y="716" width="160" height="52" fill="#fff" stroke="#4ade80" class="box"/>
+  <text x="674" y="738" class="box-title">VPN / Bastion</text>
+  <text x="674" y="754" class="box-sub">admin access only</text>
+
+  <!-- Arrows -->
+  <line x1="220" y1="620" x2="420" y2="296" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="420" y1="250" x2="220" y2="380" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="520" y1="280" x2="220" y2="380" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="220" y1="452" x2="480" y2="416" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="480" y1="416" x2="940" y2="160" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="320" y1="416" x2="640" y2="416" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="520" y1="250" x2="750" y2="380" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="750" y1="452" x2="560" y2="716" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="990" y1="620" x2="860" y2="452" stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Legend -->
+  <rect x="40" y="808" width="1120" height="72" fill="#f8fafc" stroke="#cbd5e1" class="box"/>
+  <text x="56" y="832" class="legend">v1 in repo: audit.py · auth.py (operator/auditor) · main.py gateway stub · deploy/grafana/hipaa-hermes-v1.json</text>
+  <text x="56" y="852" class="legend">Cut from v1 (§4a.4): Loki · multi-env CI/CD · case-study doc · public log tunnels · full hash-chain</text>
+  <text x="56" y="872" class="legend">Publication: Q12 Option B  reference architecture only</text>
+</svg>
