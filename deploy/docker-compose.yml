@@ -45,6 +45,14 @@ services:
     volumes:
       - ollama-data:/root/.ollama
 
+  presidio-analyzer:
+    image: mcr.microsoft.com/presidio-analyzer:latest
+    network_mode: host
+    environment:
+      - ANALYZER_LOG_LEVEL=WARNING
+      # Grafana uses :3000; Presidio listens on :3001 (set DEID_NER_URL accordingly)
+      - PORT=3001
+
 volumes:
   loki-data:
   ollama-data:

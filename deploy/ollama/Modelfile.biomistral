@@ -1,0 +1,8 @@
+# Re-wrap community BioMistral GGUF with a working Mistral [INST] chat template.
+# The upstream adrienbrault tag ships a broken ChatML template (empty outputs).
+FROM adrienbrault/biomistral-7b:Q4_K_M
+TEMPLATE "[INST] {{ if .System }}{{ .System }}
+
+{{ end }}{{ .Prompt }} [/INST]"
+PARAMETER temperature 0.3
+PARAMETER num_predict 1024

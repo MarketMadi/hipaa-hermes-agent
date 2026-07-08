@@ -2,6 +2,12 @@
 name = "hermes"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme = "../../README.md"
 
 [[bin]]
 name = "hermes"
@@ -31,6 +37,7 @@ prometheus = "0.13"
 lazy_static = "1.4"
 thiserror = "1.0"
 regex = "1.10"
+jsonwebtoken = "9.3"
 
 [dev-dependencies]
 tempfile = "3.10"

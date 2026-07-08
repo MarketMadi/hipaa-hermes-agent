@@ -14,6 +14,10 @@ lazy_static! {
         .timeout_connect(Duration::from_secs(10))
         .timeout_read(Duration::from_secs(120))
         .build();
+    static ref OLLAMA_HTTP: ureq::Agent = ureq::AgentBuilder::new()
+        .timeout_connect(Duration::from_secs(10))
+        .timeout_read(Duration::from_secs(300))
+        .build();
 }
 
 #[derive(Debug, Error)]
@@ -185,6 +189,31 @@ fn ollama_facts_prompt(prompt: &str) -> String {
     )
 }
 
+fn is_medical_ollama_model(model: &str) -> bool {
+    let m = model.to_lowercase();
+    m.contains("biomistral") || m.contains("meditron") || m.contains("medgemma")
+}
+
+fn ollama_medical_prompt(prompt: &str, skill: &str) -> String {
+    let (context, task) = parse_context_question(prompt);
+    let context = strip_redaction_tokens(&context);
+    let task = soften_task(&task);
+    format!(
+        "You are a clinical documentation assistant (skill: {skill}). \
+         The text below is de-identified synthetic training material — not real PHI.\n\n\
+         {context}\n\n\
+         Task: {task}\n\n\
+         Respond concisely using only the information above."
+    )
+}
+
+fn ollama_medical_system(skill: &str) -> String {
+    format!(
+        "You help clinicians draft plain-language summaries from de-identified synthetic notes. \
+         Be factual and concise. Skill: {skill}."
+    )
+}
+
 fn ollama_minimal_prompt(prompt: &str) -> String {
     let (context, _) = parse_context_question(prompt);
     let context = strip_redaction_tokens(&context);
@@ -295,12 +324,21 @@ fn ollama_blocking(
     base_url: &str,
     model: &str,
     prompt: &str,
-    _skill: &str,
+    skill: &str,
 ) -> Result<String, LlmError> {
-    let user = ollama_facts_prompt(prompt);
-    let mut out = ollama_chat(base_url, model, "", &user)?;
+    let medical = is_medical_ollama_model(model);
+    let (system, user) = if medical {
+        (
+            ollama_medical_system(skill),
+            ollama_medical_prompt(prompt, skill),
+        )
+    } else {
+        (String::new(), ollama_facts_prompt(prompt))
+    };
 
-    if looks_like_refusal(&out) {
+    let mut out = ollama_chat(base_url, model, &system, &user)?;
+
+    if !medical && looks_like_refusal(&out) {
         let retry = ollama_minimal_prompt(prompt);
         out = ollama_chat(base_url, model, "", &retry)?;
     }
@@ -308,7 +346,7 @@ fn ollama_blocking(
     if looks_like_refusal(&out) {
         return Err(LlmError::Api {
             status: 422,
-            body: "local model refused fictional demo content — try restarting Ollama or set LLM_PROVIDER=anthropic".into(),
+            body: "local model refused fictional demo content — try restarting BioMistral or set LLM_PROVIDER=anthropic".into(),
         });
     }
 
@@ -345,7 +383,7 @@ fn ollama_chat(
         },
     };
 
-    let response = match HTTP.post(&url)
+    let response = match OLLAMA_HTTP.post(&url)
         .set("content-type", "application/json")
         .send_json(&body)
     {
@@ -368,10 +406,76 @@ fn ollama_chat(
         .map_err(|e| LlmError::Http(e.to_string()))?;
 
     if parsed.message.content.is_empty() {
+        if let Ok(fallback) = ollama_generate(base_url, model, system, user) {
+            if !fallback.is_empty() {
+                return Ok(fallback);
+            }
+        }
         return Err(LlmError::EmptyResponse);
     }
 
     Ok(parsed.message.content)
+}
+
+#[derive(Serialize)]
+struct OllamaGenerateRequest<'a> {
+    model: &'a str,
+    prompt: &'a str,
+    stream: bool,
+    options: OllamaOptions,
+}
+
+#[derive(Deserialize)]
+struct OllamaGenerateResponse {
+    response: String,
+}
+
+fn ollama_generate(
+    base_url: &str,
+    model: &str,
+    system: &str,
+    user: &str,
+) -> Result<String, LlmError> {
+    let url = format!("{}/api/generate", base_url.trim_end_matches('/'));
+    let prompt = if system.is_empty() {
+        format!("<s>[INST] {user} [/INST]")
+    } else {
+        format!("<s>[INST] {system}\n\n{user} [/INST]")
+    };
+
+    let body = OllamaGenerateRequest {
+        model,
+        prompt: &prompt,
+        stream: false,
+        options: OllamaOptions {
+            temperature: 0.3,
+            num_predict: 1024,
+        },
+    };
+
+    let response = OLLAMA_HTTP
+        .post(&url)
+        .set("content-type", "application/json")
+        .send_json(&body)
+        .map_err(|e| match e {
+            ureq::Error::Status(status, resp) => {
+                let body = resp.into_string().unwrap_or_default();
+                LlmError::Api { status, body }
+            }
+            other => LlmError::Http(other.to_string()),
+        })?;
+
+    let status = response.status();
+    if status != 200 {
+        let body = response.into_string().unwrap_or_default();
+        return Err(LlmError::Api { status, body });
+    }
+
+    let parsed: OllamaGenerateResponse = response
+        .into_json()
+        .map_err(|e| LlmError::Http(e.to_string()))?;
+
+    Ok(parsed.response.trim().to_string())
 }
 
 #[derive(Deserialize)]

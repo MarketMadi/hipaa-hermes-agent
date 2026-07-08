@@ -20,13 +20,19 @@
 
 ---
 
-## v2 (in progress)
+## v3 (done)
 
 | Item | Deliverable |
 |------|-------------|
-| De-identification pipeline | `deid.rs` — scrub before LLM; audit metadata: `deid_redaction_count`, `deid_categories` |
-| Hard-block vs redact | SSN/email/phone blocked on raw input; ages/dates/MRNs/names redacted for allowed requests |
-| Demo transparency | `/v1/inference` returns `deidentified_prompt` for operator UI |
+| Safe Harbor rule engine | `deid/safe_harbor.rs` — 18 category mapping |
+| Residual risk scoring | `deid/risk.rs` — low/medium/high + warnings |
+| Validation fixtures | `tests/deid_safe_harbor.rs` |
+| Presidio hybrid (optional) | `DEID_MODE=hybrid` + Presidio on `:3001` |
+| On-prem BioMistral | `biomistral-hermes`, `docs/MODELS.md` |
+
+## v4+ (production hardening)
+
+See **[DEPLOYMENT_EPICS.md](./DEPLOYMENT_EPICS.md)** — TLS/proxy, OIDC, encrypted audit DB, Vault, local / dev droplet / prod cloud.
 
 ---
 

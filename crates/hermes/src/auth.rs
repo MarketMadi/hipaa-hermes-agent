@@ -7,8 +7,10 @@ use axum::{
 };
 use secrecy::ExposeSecret;
 use serde_json::json;
+use std::sync::Arc;
 
 use crate::config::Config;
+use crate::oidc::{self, JwksCache};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Role {
@@ -32,8 +34,8 @@ pub struct AuthContext {
 }
 
 pub struct AuthRejection {
-    status: StatusCode,
-    detail: String,
+    pub status: StatusCode,
+    pub detail: String,
 }
 
 impl IntoResponse for AuthRejection {
@@ -45,7 +47,7 @@ impl IntoResponse for AuthRejection {
     }
 }
 
-pub fn authorize(
+pub fn authorize_role_key(
     config: &Config,
     role_key: Option<&str>,
     allowed: &[Role],
@@ -84,9 +86,65 @@ pub fn authorize(
     })
 }
 
+pub async fn authenticate(
+    config: &Config,
+    jwks: Option<&Arc<JwksCache>>,
+    bearer: Option<&str>,
+    role_key: Option<&str>,
+    allowed: &[Role],
+) -> Result<AuthContext, AuthRejection> {
+    if config.oidc.enabled {
+        if let Some(token) = bearer {
+            let cache = jwks.ok_or_else(|| AuthRejection {
+                status: StatusCode::INTERNAL_SERVER_ERROR,
+                detail: "OIDC enabled but JWKS cache not initialized".into(),
+            })?;
+            return cache.validate(token, &config.oidc, allowed).await;
+        }
+
+        if config.oidc.allow_role_key {
+            if let Ok(ctx) = authorize_role_key(config, role_key, allowed) {
+                return Ok(ctx);
+            }
+        }
+
+        return Err(AuthRejection {
+            status: StatusCode::UNAUTHORIZED,
+            detail: "missing or invalid Authorization Bearer token".into(),
+        });
+    }
+
+    authorize_role_key(config, role_key, allowed)
+}
+
 pub struct OperatorAuth(pub AuthContext);
 pub struct AuditorAuth(pub AuthContext);
 pub struct EitherAuth(pub AuthContext);
+
+async fn extract_auth(
+    parts: &mut Parts,
+    state: &crate::AppState,
+    allowed: &[Role],
+) -> Result<AuthContext, AuthRejection> {
+    let bearer = parts
+        .headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(oidc::parse_bearer);
+    let role_key = parts
+        .headers
+        .get("X-Role-Key")
+        .and_then(|v| v.to_str().ok());
+
+    authenticate(
+        &state.config,
+        state.jwks.as_ref(),
+        bearer,
+        role_key,
+        allowed,
+    )
+    .await
+}
 
 macro_rules! auth_extractor {
     ($name:ident, $allowed:expr) => {
@@ -98,11 +156,7 @@ macro_rules! auth_extractor {
                 parts: &mut Parts,
                 state: &crate::AppState,
             ) -> Result<Self, Self::Rejection> {
-                let key = parts
-                    .headers
-                    .get("X-Role-Key")
-                    .and_then(|v| v.to_str().ok());
-                let ctx = authorize(&state.config, key, $allowed)?;
+                let ctx = extract_auth(parts, state, $allowed).await?;
                 Ok($name(ctx))
             }
         }

@@ -3,6 +3,10 @@ resolver = "2"
 members = ["crates/hermes"]
 
 [workspace.package]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 license = "MIT"
+repository = "https://github.com/MarketMadi/hipaa-hermes-agent"
+description = "HIPAA-aligned inference gateway — de-ID, policy, audit, on-prem BioMistral"
+keywords = ["hipaa", "healthcare", "biomistral", "llm", "audit", "de-identification"]
+categories = ["web-programming", "authentication"]

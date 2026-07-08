@@ -1,4 +1,4 @@
-use hermes::{build_router, config::Config, AppState};
+use hermes::{build_router, config::Config, oidc, AppState};
 use std::sync::Arc;
 use tracing::info;
 
@@ -15,17 +15,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let audit = Arc::new(hermes::audit::AuditLog::open(&config.database_path)?);
     hermes::metrics::MetricsRegistry::refresh_audit_gauges(&audit);
 
+    let jwks = if config.oidc.enabled {
+        Some(Arc::new(oidc::JwksCache::new(config.oidc.jwks_url.clone())))
+    } else {
+        None
+    };
+
     let state = AppState {
         config: config.clone(),
         audit,
+        jwks,
     };
 
     let llm_status = if config.llm_available() {
         config.model_label()
     } else {
-        "stub (run ./scripts/setup-ollama.sh or set LLM_PROVIDER=anthropic)".into()
+        "stub (run ./scripts/setup-biomistral.sh or set LLM_PROVIDER=anthropic)".into()
     };
-    info!(%llm_status, "HIPAA Hermes starting");
+    info!(env = %config.env.as_str(), %llm_status, "HIPAA Hermes starting");
 
     let app = build_router(state);
     let addr = format!("{}:{}", config.bind_host, config.bind_port);

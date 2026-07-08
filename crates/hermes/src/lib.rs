@@ -5,6 +5,7 @@ pub mod deid;
 pub mod inference;
 pub mod llm;
 pub mod metrics;
+pub mod oidc;
 pub mod policy;
 
 use axum::{
@@ -32,6 +33,7 @@ use metrics::MetricsRegistry;
 pub struct AppState {
     pub config: Config,
     pub audit: Arc<AuditLog>,
+    pub jwks: Option<Arc<oidc::JwksCache>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -71,7 +73,7 @@ async fn demo_scenarios() -> Result<Json<Value>, StatusCode> {
 }
 
 async fn health() -> Json<Value> {
-    Json(json!({ "status": "ok", "version": "0.2.0" }))
+    Json(json!({ "status": "ok", "version": "0.3.0" }))
 }
 
 async fn prometheus_metrics(State(state): State<AppState>) -> Result<String, StatusCode> {
@@ -105,6 +107,7 @@ async fn inference_handler(
             "entry_hash": resp.entry_hash,
             "deid_redaction_count": resp.deid_redaction_count,
             "deid_categories": resp.deid_categories,
+            "deid_residual_risk": resp.deid_residual_risk,
             "deidentified_prompt": resp.deidentified_prompt,
         }))),
         Err(e) => Err((e.status_code(), Json(json!({ "detail": e.detail() })))),

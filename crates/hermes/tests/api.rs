@@ -16,6 +16,8 @@ use tower::ServiceExt;
 
 fn test_config(db_path: &std::path::Path) -> Config {
     Config {
+        env: hermes::config::HermesEnv::Local,
+        behind_proxy: false,
         database_path: db_path.to_path_buf(),
         admin_secret: Secret::new("change-me-operator".into()),
         auditor_secret: Secret::new("change-me-auditor".into()),
@@ -23,18 +25,36 @@ fn test_config(db_path: &std::path::Path) -> Config {
         claude_model: "claude-sonnet-4-20250514".into(),
         llm_provider: LlmProvider::Anthropic,
         ollama_base_url: "http://127.0.0.1:11434".into(),
-            ollama_model: "llama3.2:1b".into(),
+            ollama_model: "biomistral-hermes".into(),
         llm_disabled: true,
         llm_fallback_stub: true,
+        deid: hermes::deid::DeidConfig {
+            mode: hermes::deid::DeidMode::Rules,
+            ner_url: "http://127.0.0.1:3001".into(),
+            block_on_high_risk: false,
+        },
         bind_host: "127.0.0.1".into(),
         bind_port: 8090,
+        oidc: hermes::config::OidcConfig {
+            enabled: false,
+            issuer: String::new(),
+            audience: "hermes-api".into(),
+            jwks_url: String::new(),
+            operator_groups: vec!["hermes-operator".into()],
+            auditor_groups: vec!["hermes-auditor".into()],
+            allow_role_key: true,
+        },
     }
 }
 
 fn test_app(db_path: &std::path::Path) -> axum::Router {
     let config = test_config(db_path);
     let audit = Arc::new(AuditLog::open(db_path).unwrap());
-    build_router(AppState { config, audit })
+    build_router(AppState {
+        config,
+        audit,
+        jwks: None,
+    })
 }
 
 async fn body_json(response: axum::response::Response) -> Value {

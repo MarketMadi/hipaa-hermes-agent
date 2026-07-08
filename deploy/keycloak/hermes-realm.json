@@ -1,0 +1,64 @@
+{
+  "realm": "hermes",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "roles": {
+    "realm": [
+      { "name": "hermes-operator", "description": "Hermes inference operator" },
+      { "name": "hermes-auditor", "description": "Hermes audit export" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "hermes-api",
+      "name": "Hermes API",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": true,
+      "redirectUris": ["*"],
+      "webOrigins": ["*"],
+      "protocolMappers": [
+        {
+          "name": "audience-hermes-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "hermes-api",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "operator",
+      "enabled": true,
+      "email": "operator@hospital.test",
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "Operator",
+      "credentials": [
+        { "type": "password", "value": "operator", "temporary": false }
+      ],
+      "realmRoles": ["hermes-operator"]
+    },
+    {
+      "username": "auditor",
+      "enabled": true,
+      "email": "auditor@hospital.test",
+      "emailVerified": true,
+      "firstName": "Demo",
+      "lastName": "Auditor",
+      "credentials": [
+        { "type": "password", "value": "auditor", "temporary": false }
+      ],
+      "realmRoles": ["hermes-auditor"]
+    }
+  ]
+}

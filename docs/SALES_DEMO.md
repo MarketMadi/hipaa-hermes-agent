@@ -7,7 +7,7 @@
 It emulates the **AI gateway** a hospital would deploy **behind** Epic/Cerner/Athena:
 
 ```
-Clinician in EHR  →  [Hermes gateway]  →  Local LLM (Ollama, on-prem)
+Clinician in EHR  →  [Hermes gateway]  →  BioMistral (local, on-prem)
                          │
                     de-ID + policy (minimized payload)
                     RBAC (who can run AI vs read audit)
@@ -38,7 +38,7 @@ Clinician in EHR  →  [Hermes gateway]  →  Local LLM (Ollama, on-prem)
 ```bash
 cd ~/hipaa-hermes-agent
 cp .env.example .env
-./scripts/setup-ollama.sh   # one-time: pulls local model
+./scripts/setup-biomistral.sh   # one-time: pulls BioMistral (see docs/MODELS.md)
 chmod +x scripts/*.sh
 ```
 
@@ -206,9 +206,9 @@ curl -s -o /dev/null -w "HTTP %{http_code}\n" \
 | Question | Answer |
 |----------|--------|
 | Is this HIPAA certified? | No — reference architecture + primitives you harden. |
-| What LLM? | **Ollama on-prem** by default (Docker). Optional cloud via `LLM_PROVIDER=anthropic`. |
+| What LLM? | **BioMistral on-prem** (`biomistral-hermes`) by default. See [MODELS.md](MODELS.md). Optional cloud via `LLM_PROVIDER=anthropic`. |
 | Where's PHI stored? | Not in audit or logs — only metadata. Inference payload stays on-host after de-ID. |
-| Can we use OpenAI / Azure? | Gateway is vendor-agnostic. Local Ollama today; cloud providers are a config switch. |
+| Can we use OpenAI / Azure? | Gateway is vendor-agnostic. Local BioMistral today; cloud providers are a config switch. |
 | Is this production-ready? | Skeleton — proves controls; needs hardening for prod. |
 | What client is this from? | Generic reference — no client names in the repo. |
 

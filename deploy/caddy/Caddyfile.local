@@ -1,0 +1,9 @@
+# Local HTTPS via Caddy (optional). API must bind 127.0.0.1:8090.
+{
+	admin off
+}
+
+https://localhost:8443 {
+	tls internal
+	reverse_proxy 127.0.0.1:8090
+}
