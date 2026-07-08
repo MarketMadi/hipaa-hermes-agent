@@ -45,7 +45,7 @@ Synthetic discharge notes → de-ID preview → policy check → **BioMistral** 
 | **BioMistral on-prem** | Clinical LLM via `biomistral-hermes` (~4.4 GB) — [setup guide](docs/MODELS.md) |
 | **De-ID v3** | Safe Harbor–oriented 18-category rules, residual risk scoring, optional [Presidio](https://microsoft.github.io/presidio/) hybrid |
 | **Policy layer** | Hard-block SSN / email / phone; skill allowlist before any model call |
-| **Audit log** | Append-only SQLite, SHA-256 per entry, export for compliance review |
+| **Audit log** | Append-only SQLite (local) or **Postgres** (dev/prod), SHA-256 per entry |
 | **RBAC** | `operator` (inference) · `auditor` (audit export) via **OIDC JWT** or `X-Role-Key` |
 | **OIDC / SSO** | Keycloak for local dev; map IdP groups → roles — [OIDC.md](docs/OIDC.md) |
 | **Environment model** | `HERMES_ENV=local\|dev\|prod` with startup validation |
@@ -152,6 +152,8 @@ Copy `.env.example` → `.env`. Templates for dev/prod: `.env.dev.example`, `.en
 | `DEID_MODE` | `rules` | `hybrid` adds Presidio NER on `:3001` |
 | `DEID_BLOCK_ON_HIGH_RISK` | `0` | Set `1` to block inference when de-ID risk is high |
 | `ADMIN_SECRET` | — | Operator `X-Role-Key` (break-glass when OIDC on) |
+| `AUDIT_BACKEND` | auto | `sqlite` (local) or `postgres` (dev/prod) — [AUDIT_DB.md](docs/AUDIT_DB.md) |
+| `DATABASE_URL` | — | Postgres connection string (required for dev/prod) |
 | `OIDC_ENABLED` | `0` | Set `1` for JWT auth — [docs/OIDC.md](docs/OIDC.md) |
 | `HERMES_BEHIND_PROXY` | `0` | Set `1` with Caddy TLS overlay |
 
@@ -173,6 +175,7 @@ Includes Safe Harbor de-ID fixture tests for all 18 identifier categories and OI
 |-----|----------|
 | [MODELS.md](docs/MODELS.md) | BioMistral setup, hardware, troubleshooting |
 | [OIDC.md](docs/OIDC.md) | JWT / SSO setup (Keycloak, prod IdP) |
+| [AUDIT_DB.md](docs/AUDIT_DB.md) | Postgres audit store, SQLite migration |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Trust zones, HIPAA control mapping |
 | [SALES_DEMO.md](docs/SALES_DEMO.md) | 5–8 min live demo talk track |
 | [DEPLOYMENT_EPICS.md](docs/DEPLOYMENT_EPICS.md) | Local / dev / prod roadmap |
@@ -188,7 +191,8 @@ Includes Safe Harbor de-ID fixture tests for all 18 identifier categories and OI
 | **v3** | ✅ Done | Safe Harbor de-ID, Presidio hybrid, BioMistral, clinician demo UI |
 | **v4.0** | ✅ Done | `HERMES_ENV`, config validation, optional local TLS (Caddy) |
 | **v4.1** | ✅ Done | OIDC / JWT SSO, Keycloak dev IdP, group → role mapping |
-| **v4.2+** | Planned | Encrypted Postgres audit DB, Vault secrets |
+| **v4.2** | ✅ Done | Postgres audit DB (SQLite local), migration tool |
+| **v4.3+** | Planned | Vault secrets, dev droplet bootstrap |
 
 Details: [docs/DEPLOYMENT_EPICS.md](docs/DEPLOYMENT_EPICS.md)
 

@@ -12,8 +12,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     let config = Config::from_env().map_err(|e| format!("config error: {e}"))?;
-    let audit = Arc::new(hermes::audit::AuditLog::open(&config.database_path)?);
-    hermes::metrics::MetricsRegistry::refresh_audit_gauges(&audit);
+    let audit = Arc::new(hermes::audit::AuditLog::open(&config.audit).await?);
+    hermes::metrics::MetricsRegistry::refresh_audit_gauges(&audit).await;
 
     let jwks = if config.oidc.enabled {
         Some(Arc::new(oidc::JwksCache::new(config.oidc.jwks_url.clone())))

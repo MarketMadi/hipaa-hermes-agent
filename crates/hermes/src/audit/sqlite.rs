@@ -1,51 +1,28 @@
 use chrono::Utc;
 use rusqlite::{params, Connection};
-use serde::{Deserialize, Serialize};
-use serde_json::{Map, Value};
-use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
+use serde_json::Value;
 use std::path::{Path, PathBuf};
-use thiserror::Error;
 
-#[derive(Debug, Error)]
-pub enum AuditError {
-    #[error("database error: {0}")]
-    Db(#[from] rusqlite::Error),
-    #[error("json error: {0}")]
-    Json(#[from] serde_json::Error),
-}
+use super::{hash_entry, AuditEntry, AuditError, AuditMetrics};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AuditEntry {
-    pub id: i64,
-    pub ts: String,
-    pub actor: String,
-    pub role: String,
-    pub action: String,
-    pub resource: String,
-    pub outcome: String,
-    pub metadata: Value,
-    pub entry_hash: String,
-}
-
-pub struct AuditLog {
+pub struct SqliteAuditStore {
     db_path: PathBuf,
 }
 
-impl AuditLog {
+impl SqliteAuditStore {
     pub fn open(db_path: impl AsRef<Path>) -> Result<Self, AuditError> {
         let db_path = db_path.as_ref().to_path_buf();
         if let Some(parent) = db_path.parent() {
             std::fs::create_dir_all(parent).map_err(|e| {
-                AuditError::Db(rusqlite::Error::SqliteFailure(
+                AuditError::Sqlite(rusqlite::Error::SqliteFailure(
                     rusqlite::ffi::Error::new(rusqlite::ffi::SQLITE_CANTOPEN),
                     Some(e.to_string()),
                 ))
             })?;
         }
-        let log = Self { db_path };
-        log.init_schema()?;
-        Ok(log)
+        let store = Self { db_path };
+        store.init_schema()?;
+        Ok(store)
     }
 
     fn connect(&self) -> Result<Connection, AuditError> {
@@ -187,7 +164,7 @@ impl AuditLog {
         let mut stmt = conn.prepare(
             "SELECT action, COUNT(*) AS n FROM audit_entries GROUP BY action ORDER BY n DESC",
         )?;
-        let by_action: BTreeMap<String, i64> = stmt
+        let by_action = stmt
             .query_map([], |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)))?
             .filter_map(|r| r.ok())
             .collect();
@@ -197,70 +174,29 @@ impl AuditLog {
             by_action,
         })
     }
-}
 
-#[derive(Debug, Clone)]
-pub struct AuditMetrics {
-    pub total_entries: i64,
-    pub failure_count: i64,
-    pub by_action: BTreeMap<String, i64>,
-}
-
-fn hash_entry(
-    ts: &str,
-    actor: &str,
-    role: &str,
-    action: &str,
-    resource: &str,
-    outcome: &str,
-    metadata: &Value,
-) -> Result<String, AuditError> {
-    let mut map = Map::new();
-    map.insert("ts".into(), Value::String(ts.into()));
-    map.insert("actor".into(), Value::String(actor.into()));
-    map.insert("role".into(), Value::String(role.into()));
-    map.insert("action".into(), Value::String(action.into()));
-    map.insert("resource".into(), Value::String(resource.into()));
-    map.insert("outcome".into(), Value::String(outcome.into()));
-    map.insert("metadata".into(), canonicalize_value(metadata));
-    let canonical = serde_json::to_string(&map)?;
-    let digest = Sha256::digest(canonical.as_bytes());
-    Ok(hex::encode(digest))
-}
-
-/// Match Python json.dumps(sort_keys=True) for nested objects.
-fn canonicalize_value(value: &Value) -> Value {
-    match value {
-        Value::Object(map) => {
-            let sorted: BTreeMap<_, _> = map
-                .iter()
-                .map(|(k, v)| (k.as_str(), canonicalize_value(v)))
-                .collect();
-            let mut out = Map::new();
-            for (k, v) in sorted {
-                out.insert(k.to_string(), v);
-            }
-            Value::Object(out)
-        }
-        Value::Array(arr) => Value::Array(arr.iter().map(canonicalize_value).collect()),
-        other => other.clone(),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tempfile::NamedTempFile;
-
-    #[test]
-    fn append_and_verify_hash() {
-        let tmp = NamedTempFile::new().unwrap();
-        let log = AuditLog::open(tmp.path()).unwrap();
-        let meta = serde_json::json!({"prompt_len": 35, "latency_ms": 0.01});
-        let entry = log
-            .append("operator", "operator", "inference", "vault-answer", "ok", &meta)
-            .unwrap();
-        assert!(log.verify_entry(entry.id).unwrap());
-        assert_eq!(entry.entry_hash.len(), 64);
+    pub fn list_all_entries(&self) -> Result<Vec<AuditEntry>, AuditError> {
+        let conn = self.connect()?;
+        let mut stmt = conn.prepare(
+            "SELECT id, ts, actor, role, action, resource, outcome, metadata_json, entry_hash
+             FROM audit_entries ORDER BY id ASC",
+        )?;
+        let rows: Vec<AuditEntry> = stmt
+            .query_map([], |row| {
+                let metadata_str: String = row.get(7)?;
+                Ok(AuditEntry {
+                    id: row.get(0)?,
+                    ts: row.get(1)?,
+                    actor: row.get(2)?,
+                    role: row.get(3)?,
+                    action: row.get(4)?,
+                    resource: row.get(5)?,
+                    outcome: row.get(6)?,
+                    metadata: serde_json::from_str(&metadata_str).unwrap_or(Value::Null),
+                    entry_hash: row.get(8)?,
+                })
+            })?
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(rows)
     }
 }

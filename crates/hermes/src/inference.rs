@@ -156,13 +156,14 @@ pub async fn run_inference(
                             "error",
                             &metadata,
                         )
+                        .await
                         .map_err(InferenceError::Audit)?;
                     MetricsRegistry::record_audit_append("inference", "error");
                     MetricsRegistry::record_inference_latency(
                         started.elapsed().as_secs_f64(),
                         "error",
                     );
-                    MetricsRegistry::refresh_audit_gauges(audit);
+                    MetricsRegistry::refresh_audit_gauges(audit).await;
                     return Err(InferenceError::Llm(e));
                 }
             }
@@ -191,10 +192,11 @@ pub async fn run_inference(
             outcome,
             &metadata,
         )
+        .await
         .map_err(InferenceError::Audit)?;
     MetricsRegistry::record_audit_append("inference", outcome);
     MetricsRegistry::record_inference_latency(started.elapsed().as_secs_f64(), outcome);
-    MetricsRegistry::refresh_audit_gauges(audit);
+    MetricsRegistry::refresh_audit_gauges(audit).await;
 
     info!(
         actor = %auth.actor,
@@ -240,10 +242,11 @@ async fn policy_denied(
             "blocked",
             &metadata,
         )
+        .await
         .map_err(InferenceError::Audit)?;
     MetricsRegistry::record_audit_append("inference", "blocked");
     MetricsRegistry::record_inference_latency(started.elapsed().as_secs_f64(), "blocked");
-    MetricsRegistry::refresh_audit_gauges(audit);
+    MetricsRegistry::refresh_audit_gauges(audit).await;
     warn!(
         actor = %auth.actor,
         skill = %body.skill,
@@ -278,10 +281,11 @@ async fn deid_denied(
             "blocked",
             &metadata,
         )
+        .await
         .map_err(InferenceError::Audit)?;
     MetricsRegistry::record_audit_append("inference", "blocked");
     MetricsRegistry::record_inference_latency(started.elapsed().as_secs_f64(), "blocked");
-    MetricsRegistry::refresh_audit_gauges(audit);
+    MetricsRegistry::refresh_audit_gauges(audit).await;
     warn!(
         actor = %auth.actor,
         skill = %body.skill,

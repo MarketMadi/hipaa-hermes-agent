@@ -5,7 +5,7 @@ use axum::{
 use hermes::{
     audit::AuditLog,
     build_router,
-    config::{Config, LlmProvider},
+    config::{AuditBackend, AuditConfig, Config, LlmProvider},
     AppState,
 };
 use secrecy::Secret;
@@ -18,7 +18,11 @@ fn test_config(db_path: &std::path::Path) -> Config {
     Config {
         env: hermes::config::HermesEnv::Local,
         behind_proxy: false,
-        database_path: db_path.to_path_buf(),
+        audit: AuditConfig {
+            backend: AuditBackend::Sqlite,
+            sqlite_path: db_path.to_path_buf(),
+            database_url: None,
+        },
         admin_secret: Secret::new("change-me-operator".into()),
         auditor_secret: Secret::new("change-me-auditor".into()),
         anthropic_api_key: None,
@@ -47,9 +51,9 @@ fn test_config(db_path: &std::path::Path) -> Config {
     }
 }
 
-fn test_app(db_path: &std::path::Path) -> axum::Router {
+async fn test_app(db_path: &std::path::Path) -> axum::Router {
     let config = test_config(db_path);
-    let audit = Arc::new(AuditLog::open(db_path).unwrap());
+    let audit = Arc::new(AuditLog::open(&config.audit).await.unwrap());
     build_router(AppState {
         config,
         audit,
@@ -67,18 +71,24 @@ async fn body_json(response: axum::response::Response) -> Value {
 #[tokio::test]
 async fn audit_hash_round_trip() {
     let tmp = NamedTempFile::new().unwrap();
-    let log = AuditLog::open(tmp.path()).unwrap();
+    let config = AuditConfig {
+        backend: AuditBackend::Sqlite,
+        sqlite_path: tmp.path().to_path_buf(),
+        database_url: None,
+    };
+    let log = AuditLog::open(&config).await.unwrap();
     let meta = serde_json::json!({"prompt_len": 10});
     let entry = log
         .append("operator", "operator", "inference", "vault-answer", "ok", &meta)
+        .await
         .unwrap();
-    assert!(log.verify_entry(entry.id).unwrap());
+    assert!(log.verify_entry(entry.id).await.unwrap());
 }
 
 #[tokio::test]
 async fn operator_denied_export() {
     let tmp = NamedTempFile::new().unwrap();
-    let app = test_app(tmp.path());
+    let app = test_app(tmp.path()).await;
 
     let response = app
         .oneshot(
@@ -97,7 +107,7 @@ async fn operator_denied_export() {
 #[tokio::test]
 async fn policy_blocks_ssn() {
     let tmp = NamedTempFile::new().unwrap();
-    let app = test_app(tmp.path());
+    let app = test_app(tmp.path()).await;
 
     let response = app
         .oneshot(
@@ -125,7 +135,7 @@ async fn policy_blocks_ssn() {
 #[tokio::test]
 async fn stub_inference_succeeds() {
     let tmp = NamedTempFile::new().unwrap();
-    let app = test_app(tmp.path());
+    let app = test_app(tmp.path()).await;
 
     let response = app
         .oneshot(
@@ -151,7 +161,7 @@ async fn stub_inference_succeeds() {
 #[tokio::test]
 async fn deid_scrubs_before_stub_inference() {
     let tmp = NamedTempFile::new().unwrap();
-    let app = test_app(tmp.path());
+    let app = test_app(tmp.path()).await;
 
     let prompt = "DE-IDENTIFIED DISCHARGE NOTE\nAge: 67 | Sex: F | MRN: ABC123\nAdmission: pneumonia.";
     let response = app

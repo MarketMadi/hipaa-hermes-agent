@@ -2,7 +2,7 @@
 
 Roadmap for taking HIPAA Hermes from **laptop demo** → **dev droplet** → **cloud prod**, without claiming HIPAA certification.
 
-**Current state (v4.1):** Rust gateway, de-ID v3, RBAC via `X-Role-Key` **or OIDC JWT**, plain SQLite audit log, secrets in `.env`, HTTP on `:8090`, Docker Compose observability + BioMistral + Presidio + optional Keycloak.
+**Current state (v4.2):** Rust gateway, de-ID v3, RBAC via `X-Role-Key` **or OIDC JWT**, **SQLite (local) / Postgres (dev/prod) audit**, secrets in `.env`, HTTP on `:8090`, Docker Compose observability + BioMistral + Presidio + optional Keycloak/Postgres.
 
 ---
 
@@ -117,7 +117,7 @@ OIDC_ALLOW_ROLE_KEY=1   # prod: 0
 
 ---
 
-### Epic 4 — Encrypted audit database
+### Epic 4 — Encrypted audit database ✅ (v4.2)
 
 **Why:** Integrity + confidentiality at rest (Security Rule); SQLite on disk is a demo gap.
 
@@ -130,7 +130,9 @@ OIDC_ALLOW_ROLE_KEY=1   # prod: 0
 | Connection pooling (e.g. `sqlx` + Postgres) | — | ✓ | ✓ |
 | No PHI in audit metadata (already true) | ✓ | ✓ | ✓ |
 
-**Recommendation:** Stay on SQLite for **local** speed; **require Postgres** for dev and prod. Encryption at rest comes free with managed Postgres; app-level SQLCipher only if you must stay file-based.
+**Delivered:** `sqlx` Postgres backend, SQLite for local, `migrate-audit` binary, `deploy/docker-compose.postgres.yml`, [AUDIT_DB.md](AUDIT_DB.md).
+
+**Recommendation:** Stay on SQLite for **local** speed; **require Postgres** for dev and prod. Encryption at rest comes free with managed Postgres.
 
 ---
 

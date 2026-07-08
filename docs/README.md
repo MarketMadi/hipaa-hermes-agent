@@ -9,6 +9,7 @@
 | [SALES_DEMO.md](SALES_DEMO.md) | Sales, PM | Live demo script |
 | [DEPLOYMENT_EPICS.md](DEPLOYMENT_EPICS.md) | Platform team | Local / dev / prod roadmap |
 | [OIDC.md](OIDC.md) | Platform, security | JWT / SSO setup (Keycloak, prod IdP) |
+| [AUDIT_DB.md](AUDIT_DB.md) | Platform, security | Postgres audit store, migration |
 | [GITHUB.md](GITHUB.md) | Maintainers | Stars, topics, launch checklist |
 | [DEMO_VIDEO.md](DEMO_VIDEO.md) | Marketing | Recorded demo beat sheet |
 

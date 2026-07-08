@@ -49,8 +49,8 @@ lazy_static! {
 pub struct MetricsRegistry;
 
 impl MetricsRegistry {
-    pub fn refresh_audit_gauges(audit: &AuditLog) {
-        if let Ok(m) = audit.metrics() {
+    pub async fn refresh_audit_gauges(audit: &AuditLog) {
+        if let Ok(m) = audit.metrics().await {
             Self::set_audit_metrics(&m);
         }
     }

@@ -72,12 +72,16 @@ async fn demo_scenarios() -> Result<Json<Value>, StatusCode> {
     Ok(Json(v))
 }
 
-async fn health() -> Json<Value> {
-    Json(json!({ "status": "ok", "version": "0.3.0" }))
+async fn health(State(state): State<AppState>) -> Json<Value> {
+    Json(json!({
+        "status": "ok",
+        "version": "0.3.0",
+        "audit_backend": state.audit.backend_label(),
+    }))
 }
 
 async fn prometheus_metrics(State(state): State<AppState>) -> Result<String, StatusCode> {
-    MetricsRegistry::refresh_audit_gauges(&state.audit);
+    MetricsRegistry::refresh_audit_gauges(&state.audit).await;
     MetricsRegistry::encode().map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
 }
 
@@ -85,6 +89,7 @@ async fn stats_json(State(state): State<AppState>) -> Result<Json<Value>, Status
     let m = state
         .audit
         .metrics()
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     MetricsRegistry::set_audit_metrics(&m);
     Ok(Json(json!({
@@ -123,11 +128,12 @@ async fn list_audit(
     let entries = state
         .audit
         .list_entries(limit)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let mut out = Vec::new();
     for e in entries {
-        let hash_valid = state.audit.verify_entry(e.id).unwrap_or(false);
+        let hash_valid = state.audit.verify_entry(e.id).await.unwrap_or(false);
         out.push(json!({
             "id": e.id,
             "ts": e.ts,
@@ -155,6 +161,7 @@ async fn export_audit(
     let entries = state
         .audit
         .list_entries(500)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let out: Vec<Value> = entries

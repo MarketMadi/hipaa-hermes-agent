@@ -38,6 +38,79 @@ pub enum LlmProvider {
     Ollama,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AuditBackend {
+    Sqlite,
+    Postgres,
+}
+
+impl AuditBackend {
+    pub fn parse(raw: &str) -> Result<Self, String> {
+        match raw.to_lowercase().as_str() {
+            "sqlite" => Ok(Self::Sqlite),
+            "postgres" | "postgresql" | "pg" => Ok(Self::Postgres),
+            other => Err(format!(
+                "invalid AUDIT_BACKEND: {other} (use sqlite or postgres)"
+            )),
+        }
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Sqlite => "sqlite",
+            Self::Postgres => "postgres",
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct AuditConfig {
+    pub backend: AuditBackend,
+    pub sqlite_path: PathBuf,
+    pub database_url: Option<Secret<String>>,
+}
+
+impl AuditConfig {
+    pub fn from_env(env: HermesEnv) -> Self {
+        let sqlite_path = PathBuf::from(
+            std::env::var("DATABASE_PATH").unwrap_or_else(|_| "data/hipaa_hermes.db".into()),
+        );
+        let database_url = std::env::var("DATABASE_URL")
+            .ok()
+            .filter(|s| !s.is_empty())
+            .map(Secret::new);
+
+        let backend = match std::env::var("AUDIT_BACKEND").as_deref() {
+            Ok(raw) => AuditBackend::parse(raw).unwrap_or(AuditBackend::Sqlite),
+            Err(_) => {
+                if database_url.is_some() {
+                    AuditBackend::Postgres
+                } else {
+                    AuditBackend::Sqlite
+                }
+            }
+        };
+
+        // Dev/prod default to Postgres when DATABASE_URL is set.
+        let backend = match env {
+            HermesEnv::Local => backend,
+            HermesEnv::Dev | HermesEnv::Prod => {
+                if database_url.is_some() {
+                    AuditBackend::Postgres
+                } else {
+                    backend
+                }
+            }
+        };
+
+        Self {
+            backend,
+            sqlite_path,
+            database_url,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct OidcConfig {
     pub enabled: bool,
@@ -107,7 +180,7 @@ pub struct Config {
     pub env: HermesEnv,
     pub behind_proxy: bool,
     pub oidc: OidcConfig,
-    pub database_path: PathBuf,
+    pub audit: AuditConfig,
     pub admin_secret: Secret<String>,
     pub auditor_secret: Secret<String>,
     pub anthropic_api_key: Option<Secret<String>>,
@@ -183,9 +256,7 @@ impl Config {
             env,
             behind_proxy,
             oidc: OidcConfig::from_env(env),
-            database_path: PathBuf::from(
-                std::env::var("DATABASE_PATH").unwrap_or_else(|_| "data/hipaa_hermes.db".into()),
-            ),
+            audit: AuditConfig::from_env(env),
             admin_secret: Secret::new(
                 std::env::var("ADMIN_SECRET").unwrap_or_else(|_| "change-me-operator".into()),
             ),
@@ -223,6 +294,17 @@ impl Config {
             }
             if self.oidc.jwks_url.is_empty() {
                 return Err("OIDC_ENABLED=1 requires OIDC_JWKS_URL or OIDC_ISSUER".into());
+            }
+        }
+
+        if matches!(self.env, HermesEnv::Dev | HermesEnv::Prod) {
+            if self.audit.backend != AuditBackend::Postgres {
+                return Err(
+                    "HERMES_ENV=dev/prod: set AUDIT_BACKEND=postgres and DATABASE_URL".into(),
+                );
+            }
+            if self.audit.database_url.is_none() {
+                return Err("HERMES_ENV=dev/prod: DATABASE_URL is required for Postgres audit".into());
             }
         }
 
@@ -334,7 +416,11 @@ mod tests {
                 auditor_groups: vec!["hermes-auditor".into()],
                 allow_role_key: true,
             },
-            database_path: "data/test.db".into(),
+            audit: AuditConfig {
+                backend: AuditBackend::Sqlite,
+                sqlite_path: "data/test.db".into(),
+                database_url: None,
+            },
             admin_secret: Secret::new("change-me-operator".into()),
             auditor_secret: Secret::new("change-me-auditor".into()),
             anthropic_api_key: None,
@@ -364,12 +450,23 @@ mod tests {
         assert!(base_config(HermesEnv::Dev).validate().is_err());
     }
 
+    fn prod_audit_config() -> AuditConfig {
+        AuditConfig {
+            backend: AuditBackend::Postgres,
+            sqlite_path: "data/test.db".into(),
+            database_url: Some(Secret::new(
+                "postgres://hermes:hermes@127.0.0.1:5432/hermes_audit".into(),
+            )),
+        }
+    }
+
     #[test]
     fn prod_requires_proxy_and_strong_secrets() {
         let mut c = base_config(HermesEnv::Prod);
         c.admin_secret = Secret::new("x".repeat(24));
         c.auditor_secret = Secret::new("y".repeat(24));
         c.llm_fallback_stub = false;
+        c.audit = prod_audit_config();
         assert!(c.validate().is_err());
 
         c.behind_proxy = true;
@@ -385,6 +482,7 @@ mod tests {
         c.llm_fallback_stub = false;
         c.behind_proxy = true;
         c.bind_host = "127.0.0.1".into();
+        c.audit = prod_audit_config();
         c.oidc = OidcConfig {
             enabled: true,
             issuer: "http://issuer/realms/hermes".into(),
@@ -396,6 +494,16 @@ mod tests {
         };
         assert!(c.validate().is_err());
         c.oidc.allow_role_key = false;
+        assert!(c.validate().is_ok());
+    }
+
+    #[test]
+    fn dev_requires_postgres_audit() {
+        let mut c = base_config(HermesEnv::Dev);
+        c.admin_secret = Secret::new("x".repeat(24));
+        c.auditor_secret = Secret::new("y".repeat(24));
+        assert!(c.validate().is_err());
+        c.audit = prod_audit_config();
         assert!(c.validate().is_ok());
     }
 }
