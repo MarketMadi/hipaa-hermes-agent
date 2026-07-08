@@ -11,6 +11,8 @@ Thanks for your interest in HIPAA Hermes. This project aims to be the clearest o
 
 ## Development setup
 
+**Minimal** (SQLite audit, `X-Role-Key` auth):
+
 ```bash
 git clone https://github.com/MarketMadi/hipaa-hermes-agent.git
 cd hipaa-hermes-agent
@@ -19,6 +21,18 @@ cp .env.example .env
 cargo test
 ./scripts/run.sh
 ```
+
+**Full stack** (Postgres audit, OIDC, Vault — matches dev/prod control plane):
+
+```bash
+./scripts/setup-postgres.sh
+./scripts/setup-keycloak.sh
+./scripts/setup-vault.sh
+./scripts/run-with-vault.sh
+./scripts/check-demo.sh
+```
+
+See [docs/LOCAL_STACK.md](docs/LOCAL_STACK.md) for details.
 
 ## Pull requests
 

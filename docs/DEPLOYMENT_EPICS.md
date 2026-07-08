@@ -15,9 +15,9 @@ Roadmap for taking HIPAA Hermes from **laptop demo** → **dev droplet** → **c
 | **Hermes API** | `localhost:8090` | `https://hermes-dev.example.com` | `https://hermes.example.com` (private or VPN) |
 | **TLS** | Optional (mkcert / Caddy) | **Required** — Let's Encrypt | **Required** — LE or cloud LB cert |
 | **Reverse proxy** | Optional Caddy in Compose | **Caddy or nginx** — sole public ingress | ALB/nginx/Caddy + WAF optional |
-| **Auth** | `X-Role-Key` (keep for scripts) | **OIDC** + optional break-glass keys | **OIDC + MFA** enforced |
-| **Audit DB** | SQLite (current) | **Postgres** (encrypted volume) | **Postgres** (encrypted, HA, backups) |
-| **Secrets** | `.env` (gitignored) | **Vault Agent** → env at runtime | **Vault** or cloud SM (no `.env` on disk) |
+| **Auth** | `X-Role-Key` or **OIDC JWT** (Keycloak local) | **OIDC** + optional break-glass keys | **OIDC + MFA** enforced |
+| **Audit DB** | SQLite **or Postgres** (optional local) | **Postgres** (encrypted volume) | **Postgres** (encrypted, HA, backups) |
+| **Secrets** | `.env` **or Vault** (optional local) | **Vault Agent** → env at runtime | **Vault** or cloud SM (no `.env` on disk) |
 | **LLM** | BioMistral on laptop | BioMistral on GPU droplet | Dedicated GPU node / on-prem link; cloud LLM only with BAA |
 | **Grafana** | `localhost:3000` open | HTTPS + **IP allowlist / VPN** | VPN or SSO-only; not public internet |
 | **Presidio / inference runtime** | Host network, local only | **Not exposed** — internal Docker network | Internal only; no public ports |
@@ -210,9 +210,27 @@ OIDC_ALLOW_ROLE_KEY=1   # prod: 0
 |-------|-------|--------|
 | **v4.0** | 1, 2 | TLS proxy works local + dev droplet |
 | **v4.1** | 3 | OIDC on dev; break-glass keys documented |
-| **v4.2** | 4, 5 | Postgres audit + Vault on dev |
-| **v4.3** | 6 | One-command dev droplet deploy |
+| **v4.2** | 4 | Postgres audit + migration tool |
+| **v4.3** | 5 | Vault secrets injection (local) |
+| **v4.4+** | 6 | Containerize Hermes, one-command dev droplet |
 | **v5.0** | 7, 8 | Prod topology + compliance packet |
+
+---
+
+## Verified local stack (v4.3)
+
+As of v4.3, the following pass on a laptop with Docker:
+
+```bash
+cargo test                       # 26 tests
+./scripts/setup-postgres.sh
+./scripts/setup-keycloak.sh
+./scripts/setup-vault.sh
+./scripts/run-with-vault.sh
+./scripts/check-demo.sh          # all green
+```
+
+`/health` returns `audit_backend: postgres` and `secrets_source: vault`. See [LOCAL_STACK.md](./LOCAL_STACK.md) for setup, smoke tests, and troubleshooting.
 
 ---
 
@@ -242,6 +260,7 @@ OIDC_ALLOW_ROLE_KEY=1   # prod: 0
 
 ## Related docs
 
+- [LOCAL_STACK.md](./LOCAL_STACK.md) — full v4.3 laptop setup and verification
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — trust zones & control mapping
 - [SCOPE.md](./SCOPE.md) — what's in / out of v1–v3
 - [SALES_DEMO.md](./SALES_DEMO.md) — local demo playbook

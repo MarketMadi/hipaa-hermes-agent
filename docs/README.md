@@ -3,8 +3,9 @@
 | Doc | Audience | Summary |
 |-----|----------|---------|
 | [../README.md](../README.md) | Everyone | Start here — quick start, features, demo |
+| [LOCAL_STACK.md](LOCAL_STACK.md) | Operators | **Full v4.3 stack** — Postgres, OIDC, Vault, verify, troubleshoot |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Engineers, compliance | Trust zones, control mapping, diagrams |
-| [SCOPE.md](SCOPE.md) | Contributors | v1–v3 delivered; v4+ epics |
+| [SCOPE.md](SCOPE.md) | Contributors | v1–v3 delivered; v4 epics 1–5 done |
 | [MODELS.md](MODELS.md) | Operators | BioMistral setup, hardware, troubleshooting |
 | [SALES_DEMO.md](SALES_DEMO.md) | Sales, PM | Live demo script |
 | [DEPLOYMENT_EPICS.md](DEPLOYMENT_EPICS.md) | Platform team | Local / dev / prod roadmap |

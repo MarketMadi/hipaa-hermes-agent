@@ -23,6 +23,8 @@ Clinician in EHR  →  [Hermes gateway]  →  BioMistral (local, on-prem)
 
 **Production would add:** SSO, real EHR integration, encrypted Postgres, contracted BAA, formal risk assessment.
 
+For the **full local stack** (Postgres audit, OIDC JWT, Vault secrets), see [LOCAL_STACK.md](LOCAL_STACK.md).
+
 ---
 
 **Audience:** Technical buyers (CTO, platform lead, compliance engineer)  
@@ -44,10 +46,18 @@ chmod +x scripts/*.sh
 
 ### Every demo
 
+**Option A — minimal** (SQLite, `X-Role-Key`):
+
 **Terminal 1** — start everything:
 
 ```bash
 ./scripts/run.sh
+```
+
+**Option B — full stack** (Postgres, OIDC, Vault — recommended for enterprise buyers):
+
+```bash
+./scripts/run-with-vault.sh
 ```
 
 Wait until you see `listening addr=0.0.0.0:8090`.

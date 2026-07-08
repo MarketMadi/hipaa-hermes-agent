@@ -84,6 +84,22 @@ First BioMistral response on CPU may take **45–90 seconds**.
 | http://localhost:3000/d/hipaa-hermes-obs/hipaa-hermes-observability | Observability dashboard |
 | http://localhost:8180 | Keycloak (when OIDC enabled) |
 
+### Full local stack (v4.3)
+
+For the **complete** control plane — Postgres audit, OIDC, Vault secrets, hybrid Presidio de-ID:
+
+```bash
+./scripts/setup-postgres.sh
+./scripts/setup-keycloak.sh
+./scripts/setup-vault.sh
+./scripts/run-with-vault.sh
+./scripts/check-demo.sh          # all checks should be green
+```
+
+`/health` should report `"audit_backend": "postgres"` and `"secrets_source": "vault"`.
+
+Full guide: [docs/LOCAL_STACK.md](docs/LOCAL_STACK.md)
+
 ### Optional: local HTTPS
 
 ```bash
@@ -141,8 +157,10 @@ See [docs/VAULT.md](docs/VAULT.md).
                                         │
               ┌─────────────────────────┼─────────────────────────┐
               ▼                         ▼                         ▼
-         Audit log                 Prometheus               Keycloak (OIDC)
-         (SQLite)                  Grafana Loki             Presidio (hybrid de-ID)
+         Postgres audit            Prometheus               Keycloak (OIDC)
+         (or SQLite local)          Grafana Loki             Presidio (hybrid de-ID)
+              │
+         Vault (secrets)
 ```
 
 Full reference: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [request flow diagram](docs/diagrams/hipaa-hermes-request-flow.svg)
@@ -164,6 +182,7 @@ Copy `.env.example` → `.env`. Templates for dev/prod: `.env.dev.example`, `.en
 | `AUDIT_BACKEND` | auto | `sqlite` (local) or `postgres` (dev/prod) — [AUDIT_DB.md](docs/AUDIT_DB.md) |
 | `DATABASE_URL` | — | Postgres connection string (required for dev/prod) |
 | `OIDC_ENABLED` | `0` | Set `1` for JWT auth — [docs/OIDC.md](docs/OIDC.md) |
+| `VAULT_ENABLED` | `0` | Set `1` with `./scripts/run-with-vault.sh` — [docs/VAULT.md](docs/VAULT.md) |
 | `HERMES_BEHIND_PROXY` | `0` | Set `1` with Caddy TLS overlay |
 
 ---
@@ -171,10 +190,11 @@ Copy `.env.example` → `.env`. Templates for dev/prod: `.env.dev.example`, `.en
 ## Tests
 
 ```bash
-cargo test
+cargo test                       # 26 tests — unit + API integration
+./scripts/check-demo.sh          # live stack pre-flight (when running)
 ```
 
-Includes Safe Harbor de-ID fixture tests for all 18 identifier categories and OIDC role-mapping unit tests.
+Includes Safe Harbor de-ID fixture tests for all 18 identifier categories, OIDC role-mapping unit tests, and API integration tests for RBAC, audit hash chain, and policy blocking.
 
 ---
 
@@ -182,6 +202,7 @@ Includes Safe Harbor de-ID fixture tests for all 18 identifier categories and OI
 
 | Doc | Contents |
 |-----|----------|
+| [LOCAL_STACK.md](docs/LOCAL_STACK.md) | **Full v4.3 stack** — setup, verify, troubleshoot |
 | [MODELS.md](docs/MODELS.md) | BioMistral setup, hardware, troubleshooting |
 | [OIDC.md](docs/OIDC.md) | JWT / SSO setup (Keycloak, prod IdP) |
 | [AUDIT_DB.md](docs/AUDIT_DB.md) | Postgres audit store, SQLite migration |
