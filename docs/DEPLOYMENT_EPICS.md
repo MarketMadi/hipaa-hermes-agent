@@ -2,7 +2,7 @@
 
 Roadmap for taking HIPAA Hermes from **laptop demo** → **dev droplet** → **cloud prod**, without claiming HIPAA certification.
 
-**Current state (v4.2):** Rust gateway, de-ID v3, RBAC via `X-Role-Key` **or OIDC JWT**, **SQLite (local) / Postgres (dev/prod) audit**, secrets in `.env`, HTTP on `:8090`, Docker Compose observability + BioMistral + Presidio + optional Keycloak/Postgres.
+**Current state (v4.3):** Rust gateway, de-ID v3, RBAC via `X-Role-Key` **or OIDC JWT**, **SQLite (local) / Postgres (dev/prod) audit**, optional **Vault** for local secrets, HTTP on `:8090`, Docker Compose observability + BioMistral + Presidio + optional Keycloak/Postgres/Vault.
 
 ---
 
@@ -136,20 +136,22 @@ OIDC_ALLOW_ROLE_KEY=1   # prod: 0
 
 ---
 
-### Epic 5 — Vault (secrets management)
+### Epic 5 — Vault (secrets management) ✅ (v4.3 local)
 
 **Why:** `.env` on a droplet or cloud VM is a finding in any security review.
 
 | Task | L | D | P |
 |------|---|---|---|
 | Vault dev server in Compose (local only) | optional profile | — | — |
-| Vault Agent sidecar: inject `ADMIN_SECRET`, DB URL, `ANTHROPIC_API_KEY` | — | ✓ | ✓ |
+| Vault Agent sidecar: inject `ADMIN_SECRET`, DB URL, `ANTHROPIC_API_KEY` | ✓ | ✓ | ✓ |
 | App reads secrets from env at startup (no change to call sites) | ✓ | ✓ | ✓ |
 | Policy: path `secret/hermes/{env}/*` | `local` | `dev` | `prod` |
 | Rotation runbook for API keys and DB passwords | — | doc | automated |
 | **Alternative on cloud:** DO Secrets, AWS SM, GCP SM instead of self-hosted Vault | — | acceptable | acceptable |
 
-**Local:** `.env` remains fine. **Dev/prod:** no secrets in git, no secrets in Terraform state plaintext.
+**Delivered (local):** `deploy/docker-compose.vault.yml`, Vault Agent → `data/vault/hermes.env`, `scripts/setup-vault.sh`, `scripts/run-with-vault.sh`, [VAULT.md](VAULT.md).
+
+**Local:** `.env` for non-secret config; secrets in Vault. **Dev/prod:** AppRole + managed secrets (future).
 
 ---
 

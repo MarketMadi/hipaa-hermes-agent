@@ -193,6 +193,7 @@ pub struct Config {
     pub deid: DeidConfig,
     pub bind_host: String,
     pub bind_port: u16,
+    pub secrets_from_vault: bool,
 }
 
 fn is_weak_secret(secret: &Secret<String>) -> bool {
@@ -279,6 +280,9 @@ impl Config {
                 .ok()
                 .and_then(|p| p.parse().ok())
                 .unwrap_or(8090),
+            secrets_from_vault: std::env::var("VAULT_ENABLED")
+                .map(|v| v == "1" || v.eq_ignore_ascii_case("true"))
+                .unwrap_or(false),
         };
 
         config.validate()?;
@@ -437,6 +441,7 @@ mod tests {
             },
             bind_host: "0.0.0.0".into(),
             bind_port: 8090,
+            secrets_from_vault: false,
         }
     }
 

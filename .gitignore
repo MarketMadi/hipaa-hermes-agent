@@ -7,5 +7,6 @@ __pycache__/
 *.db-shm
 target/
 logs/
+data/vault/
 dist/
 .pytest_cache/

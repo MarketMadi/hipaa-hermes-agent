@@ -48,6 +48,7 @@ fn test_config(db_path: &std::path::Path) -> Config {
             auditor_groups: vec!["hermes-auditor".into()],
             allow_role_key: true,
         },
+        secrets_from_vault: false,
     }
 }
 

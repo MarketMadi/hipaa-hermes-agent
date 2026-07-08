@@ -77,6 +77,7 @@ async fn health(State(state): State<AppState>) -> Json<Value> {
         "status": "ok",
         "version": "0.3.0",
         "audit_backend": state.audit.backend_label(),
+        "secrets_source": if state.config.secrets_from_vault { "vault" } else { "env" },
     }))
 }
 

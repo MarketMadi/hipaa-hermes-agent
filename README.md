@@ -120,6 +120,15 @@ curl -s http://localhost:8090/v1/inference \
 
 Full guide: [docs/OIDC.md](docs/OIDC.md)
 
+### Optional: Vault secrets (local)
+
+```bash
+./scripts/setup-vault.sh       # Vault :8200, seeds from .env
+./scripts/run-with-vault.sh    # secrets from data/vault/hermes.env
+```
+
+See [docs/VAULT.md](docs/VAULT.md).
+
 ---
 
 ## Architecture
@@ -176,6 +185,7 @@ Includes Safe Harbor de-ID fixture tests for all 18 identifier categories and OI
 | [MODELS.md](docs/MODELS.md) | BioMistral setup, hardware, troubleshooting |
 | [OIDC.md](docs/OIDC.md) | JWT / SSO setup (Keycloak, prod IdP) |
 | [AUDIT_DB.md](docs/AUDIT_DB.md) | Postgres audit store, SQLite migration |
+| [VAULT.md](docs/VAULT.md) | Local Vault setup, secrets injection |
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Trust zones, HIPAA control mapping |
 | [SALES_DEMO.md](docs/SALES_DEMO.md) | 5–8 min live demo talk track |
 | [DEPLOYMENT_EPICS.md](docs/DEPLOYMENT_EPICS.md) | Local / dev / prod roadmap |
@@ -192,7 +202,8 @@ Includes Safe Harbor de-ID fixture tests for all 18 identifier categories and OI
 | **v4.0** | ✅ Done | `HERMES_ENV`, config validation, optional local TLS (Caddy) |
 | **v4.1** | ✅ Done | OIDC / JWT SSO, Keycloak dev IdP, group → role mapping |
 | **v4.2** | ✅ Done | Postgres audit DB (SQLite local), migration tool |
-| **v4.3+** | Planned | Vault secrets, dev droplet bootstrap |
+| **v4.3** | ✅ Done | Vault dev server + Agent (local secrets injection) |
+| **v4.4+** | Planned | Containerize Hermes, dev droplet bootstrap |
 
 Details: [docs/DEPLOYMENT_EPICS.md](docs/DEPLOYMENT_EPICS.md)
 
